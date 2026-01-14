@@ -3,53 +3,74 @@ using UnityEngine;
 
 public class SingleTile : MonoBehaviour
 {
-    public List<StatEffect> StatEffects;
+    public string Tile;
+    private UnitTile[] unitTiles;
 
-    public void Initialize(Sprite sprite, string collisionLayer)
+    private void Awake()
     {
-        var spriteRenderer = GetComponent<SpriteRenderer>();
-        if (spriteRenderer == null) return;
-        spriteRenderer.sprite = sprite;
+        unitTiles = GetComponentsInChildren<UnitTile>();
+    }
+
+    public void Initialize(string tile, Sprite[] sprites, string collisionLayer)
+    {
+        Tile = tile;
+        unitTiles.For((index, unitTile) => unitTile.Initialize(sprites[index], collisionLayer));
         gameObject.layer = LayerMask.NameToLayer(collisionLayer);
     }
     
     private void OnTriggerEnter2D(Collider2D collision)
     {
-        if(gameObject.layer == LayerMask.NameToLayer("IceTile"))
+
+        if (gameObject.layer == LayerMask.NameToLayer("IceTile"))
+        if(Tile.Length <= 0)
+            return;
+        if(Tile == "Ice" && gameObject.layer == LayerMask.NameToLayer("IceTile"))
+
         {
             collision.gameObject.GetComponentInParent<TankMovementController>().SlideIn();
+            return;
         }
-        else if(gameObject.layer == LayerMask.NameToLayer("LavaTile"))
+
+        var tankStats = collision.gameObject.GetComponentInChildren<TankStats>();
+        if(tankStats != null)
         {
-            collision.gameObject.GetComponentInChildren<TankStats>().IncrementLavaCounter();
+            tankStats.AddTileCollision(Tile);
         }
-        else if(gameObject.layer == LayerMask.NameToLayer("MudTile"))
-        {
-            var tankStats = collision.gameObject.GetComponentInChildren<TankStats>();
-            if(tankStats != null)
-            {
-                StatEffects.ForEach(x => tankStats.AddStatEffect(x, false));
-            }
-        }
+        // New code
+
+        TankMovementController tank = collision.GetComponentInParent<TankMovementController>();
+        GameEngine engine = GameObject.FindAnyObjectByType<GameEngine>();
+        if (engine == null) return;
+        if (tank == null) return;
+
+        engine.EnvironmentEffectsHandler.HandleEnvirontmentEffect(gameObject, tank);
     }
 
     private void OnTriggerExit2D(Collider2D collision)
     {
-        if(gameObject.layer == LayerMask.NameToLayer("IceTile"))
+        if (gameObject.layer == LayerMask.NameToLayer("IceTile"))
+        if(Tile.Length <= 0)
+            return;
+
+        if(Tile == "Ice" && gameObject.layer == LayerMask.NameToLayer("IceTile"))
         {
             collision.gameObject.OnGetComponentInParent<TankMovementController>(movement => movement.SlideOut());
+            return;
         }
-        else if(gameObject.layer == LayerMask.NameToLayer("LavaTile"))
+
+        var tankStats = collision.gameObject.GetComponentInChildren<TankStats>();
+        if(tankStats != null)
         {
-            collision.gameObject.GetComponentInChildren<TankStats>().DecrementLavaCounter();
+            tankStats.RemoveTileCollision(Tile);
         }
-        else if(gameObject.layer == LayerMask.NameToLayer("MudTile"))
-        {
-            var tankStats = collision.gameObject.GetComponentInChildren<TankStats>();
-            if(tankStats != null)
-            {
-                StatEffects.ForEach(x => tankStats.RemoveStatEffect(x.Tag));
-            }
-        }
+
+        // New code
+
+        TankMovementController tank = collision.GetComponentInParent<TankMovementController>();
+        GameEngine engine = GameObject.FindAnyObjectByType<GameEngine>();
+        if (engine == null) return;
+        if (tank == null) return;
+
+        engine.EnvironmentEffectsHandler.HandleEnvirontmentEffect(gameObject, tank);
     }
 }
